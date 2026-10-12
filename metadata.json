@@ -1,0 +1,8 @@
+{
+  "name": "Remix NOVA STORE — Premium E-Commerce Interactive Showcase",
+  "description": "Trải nghiệm mua sắm phong cách sống cao cấp với các bộ sưu tập thời trang len merino, đồ da thủ công Tuscan và đồ dùng nội thất tối giản.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

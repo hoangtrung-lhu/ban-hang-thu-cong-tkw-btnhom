@@ -1,0 +1,63 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ====================================================
+    // CÁC HÀM TIỆN ÍCH (HELPER FUNCTIONS)
+    // ====================================================
+
+    // Kiểm tra user đã đăng nhập chưa
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Kiểm tra user có phải là chủ sở hữu của tài liệu không (dựa trên UID)
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Kiểm tra xem dữ liệu gửi lên có chứa các trường bắt buộc không
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    // ====================================================
+    // QUY TẮC CHO TỪNG COLLECTION
+    // ====================================================
+
+    // 1. Collection 'users' (Dữ liệu cá nhân)
+    // - Chỉ chủ tài khoản mới được đọc và ghi dữ liệu của chính họ.
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // 2. Collection 'storeMembers' (Dữ liệu hội viên riêng tư)
+    // - Kế thừa logic bảo mật isOwner cho các bản ghi riêng tư.
+    match /storeMembers/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // 3. Collection 'public_posts' (Dữ liệu công khai - Live Feed)
+    // - Bất kỳ ai cũng có thể đọc.
+    // - Chỉ người đã đăng nhập mới được tạo mới.
+    // - Chỉ người tạo ra bài viết đó mới được sửa hoặc xóa.
+    match /public_posts/{postId} {
+      allow read: if true;
+      allow create: if isAuthenticated() && hasRequiredFields(['title', 'content', 'authorId']);
+      allow update, delete: if isAuthenticated() && resource.data.authorId == request.auth.uid;
+    }
+
+    // 4. Collection 'admin_data' (Dữ liệu nhạy cảm)
+    // - Khóa hoàn toàn từ client-side (web/app). 
+    match /admin_data/{document=**} {
+      allow read, write: if false;
+    }
+
+    // ====================================================
+    // LUẬT MẶC ĐỊNH CHO CÁC PATH KHÁC
+    // ====================================================
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
